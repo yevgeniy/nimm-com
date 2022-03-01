@@ -1,0 +1,30 @@
+{
+  "name": "nimm-com",
+  "version": "1.0.0",
+  "description": "one store between envs",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yevgeniy/nimm-com.git"
+  },
+  "keywords": [
+    "store"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yevgeniy/nimm-com/issues"
+  },
+  "homepage": "https://github.com/yevgeniy/nimm-com#readme",
+  "dependencies": {
+    "jest": "^27.5.1",
+    "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1"
+  },
+  "devDependencies": {
+    "nimm-react": "^1.0.25"
+  }
+}
