@@ -110,7 +110,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     }
   };
 
-  function useSelect(selector) {
+  function useSelect(selector = x => x) {
     const updator = useRef(0);
     const [, sett] = useState(updator.current);
 

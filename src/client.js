@@ -4,7 +4,7 @@ const { removeFromArray, isSame } = require("./helpers");
 function createClient({ useState, useEffect, useRef }, io) {
   const client = new IoClient(io);
 
-  function useSelect(selector) {
+  function useSelect(selector = x => x) {
     const [data, setdata] = useState(null);
     const state = useRef("init");
 
