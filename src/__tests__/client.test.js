@@ -79,7 +79,7 @@ describe("client", () => {
     args                                               | oper            | res
     ${[x => x.feefee, "foo", { fun: 123, coom: 234 }]} | ${"merge"}      | ${["merge", "x => x.feefee", "foo", { fun: 123, coom: 234 }]}
     ${[1, 2, 3]}                                       | ${"add"}        | ${["add", "x => x.feefee", 1, 2, 3]}
-    ${["remove this"]}                                 | ${"remove"}     | ${["remove", "x => x.feefee", "remove this"]}
+    ${[v => v === "a"]}                                | ${"remove"}     | ${["remove", "x => x.feefee", 'v => v === "a"']}
     ${[0, 1, "a"]}                                     | ${"splice"}     | ${["splice", "x => x.feefee", 0, 1, "a"]}
     ${["foo", "hello world"]}                          | ${"setProp"}    | ${["setProp", "x => x.feefee", "foo", "hello world"]}
     ${["foo"]}                                         | ${"deleteProp"} | ${["deleteProp", "x => x.feefee", "foo"]}

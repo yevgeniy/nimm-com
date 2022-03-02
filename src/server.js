@@ -1,5 +1,5 @@
 const IoServer = require("./IoServer");
-const { toSelector, removeFromArray, guid } = require("./helpers");
+const { toSelector, removeFromArray, guid, isSame } = require("./helpers");
 
 function toBuffer(ent) {
   if (!ent) return ent;
@@ -119,7 +119,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       const c = StoreManager.addListener(() => {
         const newval = toBuffer(selector(StoreManager._store));
 
-        if (JSON.stringify(buffer) === JSON.stringify(newval)) return;
+        if (isSame(buffer, newval)) return;
 
         buffer = newval;
         sett(++updator.current);
