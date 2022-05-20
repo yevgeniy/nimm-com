@@ -62,11 +62,11 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       selector(this._store).push(...entries);
       this.onUpdate();
     },
-    remove: function(selector, entry_matcher) {
+    remove: function(selector, matcher) {
       selector = toSelector(selector);
       const col = selector(this._store);
 
-      removeFromArray(col, entry_matcher);
+      removeFromArray(col, matcher);
 
       this.onUpdate();
     },

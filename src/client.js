@@ -1,10 +1,12 @@
 const IoClient = require("./IoClient");
-const { removeFromArray, isSame } = require("./helpers");
+const { removeFromArray, isSame, toSelector } = require("./helpers");
 
 function createClient({ useState, useEffect, useRef }, io) {
   const client = new IoClient(io);
 
-  function useSelect(selector = x => x) {
+  function useSelect(selector = 'x => x') {
+    selector=selector.toString();
+
     const [data, setdata] = useState(null);
     const state = useRef("init");
 
@@ -18,12 +20,12 @@ function createClient({ useState, useEffect, useRef }, io) {
       });
 
       return () => c();
-    }, [selector.toString()]);
+    }, [selector]);
 
     const merge = (...args) => {
       client.send("merge", ...args);
 
-      if (args.length === 1) setdata(selector(args[0]));
+      if (args.length === 1) setdata( toSelector( selector )(args[0]) );
     };
     const add = (...args) => {
       console.log("OPER", args);
@@ -37,6 +39,7 @@ function createClient({ useState, useEffect, useRef }, io) {
     const remove = fn => {
       if (fn.constructor !== Function)
         throw new Error("remove param must be a function");
+      fn=fn.toString();
       client.send("remove", selector, fn);
 
       if (data && data.constructor === Array) {

@@ -27,14 +27,13 @@ class IoClient {
 
     this.hooks.push({ guid: g, selector, onData });
 
-    this.io.emit("nimm-com-open-client-hook", g, selector.toString());
+    this.io.emit("nimm-com-open-client-hook", g, selector);
 
     return () => {
       this.hooks = this.hooks.filter(v => v.guid !== g);
     };
   }
   send(...args) {
-    args = args.map(v => (v && v.constructor === Function ? v.toString() : v));
     this.io.emit("nimm-com-client-send", ...args);
   }
   request(onData, name, ...args) {

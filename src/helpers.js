@@ -91,13 +91,7 @@ function isSame(a, b) {
 
   return true;
 }
-function removeFromArray(col, entry_matcher) {
-  let matcher;
-  if (entry_matcher.constructor === Function) matcher = entry_matcher;
-  else {
-    matcher = v => v === entry_matcher;
-  }
-
+function removeFromArray(col, matcher) {
   const toremoveindex = [];
   col.forEach((v, i) => matcher(v, i) && toremoveindex.push(i));
   toremoveindex.reverse();
