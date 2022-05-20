@@ -177,7 +177,6 @@ describe("index", () => {
   });
   test.each`
     arg
-    ${3}
     ${v => v === 3}
   `("useSelect remove", async ({ arg }) => {
     const { useSelect } = createServer(React, {

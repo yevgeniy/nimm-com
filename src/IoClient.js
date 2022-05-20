@@ -34,6 +34,7 @@ class IoClient {
     };
   }
   send(...args) {
+    args = args.map(v => (v && v.constructor === Function ? v.toString() : v));
     this.io.emit("nimm-com-client-send", ...args);
   }
   request(onData, name, ...args) {

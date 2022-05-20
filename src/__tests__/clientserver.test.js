@@ -61,7 +61,6 @@ describe("clientserver", () => {
     oper            | args                        | store                            | init                    | res
     ${"merge"}      | ${[{ foo: "hello world" }]} | ${{ foo: 123 }}                  | ${123}                  | ${"hello world"}
     ${"add"}        | ${["123", "234"]}           | ${{ foo: ["a"] }}                | ${["a"]}                | ${["a", "123", "234"]}
-    ${"remove"}     | ${["a"]}                    | ${{ foo: ["a", "b"] }}           | ${["a", "b"]}           | ${["b"]}
     ${"remove"}     | ${[v => v === "a"]}         | ${{ foo: ["a", "b"] }}           | ${["a", "b"]}           | ${["b"]}
     ${"splice"}     | ${[0, 1, 1, 2, 3]}          | ${{ foo: ["a", "b"] }}           | ${["a", "b"]}           | ${[1, 2, 3, "b"]}
     ${"setProp"}    | ${["boo", 1]}               | ${{ foo: { coo: 123 } }}         | ${{ coo: 123 }}         | ${{ coo: 123, boo: 1 }}

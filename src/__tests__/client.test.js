@@ -88,7 +88,7 @@ describe("client", () => {
 
     let c = 0;
     const C = () => {
-      const [foo, opers] = useSelect(x => x.feefee);
+      const [foo, opers] = useSelect("x => x.feefee");
 
       useEffect(() => {
         if (c !== 0) return;
