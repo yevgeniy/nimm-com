@@ -55,6 +55,25 @@ describe("index", () => {
 
     expect(StoreManager._store).toEqual(res);
   });
+  test.each`
+    oper
+    ${store => ({ ...store, foo: store.foo + 1 })}
+    ${"store => ({ ...store, foo: store.foo + 1 })"}
+  `("safeMerge", ({ oper }) => {
+    const { StoreManager } = createServer(React, {
+      foo: 1,
+      moo: {},
+      users: { cutelass: {} }
+    });
+
+    StoreManager.safeMerge(oper);
+
+    expect(StoreManager._store).toEqual({
+      foo: 2,
+      moo: {},
+      users: { cutelass: {} }
+    });
+  });
   test("merge calls onupdate", () => {
     const { StoreManager } = createServer(React, {
       foo: 1,

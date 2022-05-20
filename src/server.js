@@ -57,6 +57,12 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
 
       this.onUpdate();
     },
+    safeMerge: function(fn) {
+      fn = toSelector(fn);
+      const res = fn(this._store);
+      if (res) this._store = { ...this._store, ...res };
+      this.onUpdate();
+    },
     add: function(selector, ...entries) {
       selector = toSelector(selector);
       selector(this._store).push(...entries);
@@ -132,6 +138,10 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       StoreManager.merge(...args);
       StoreManager.onUpdateIo("merge", ...args);
     };
+    const safeMerge = fn => {
+      StoreManager.safeMerge(fn);
+      StoreManager.onUpdateIo("safeMerge", ...args);
+    };
     const add = (...args) => {
       StoreManager.add(selector, ...args);
       StoreManager.onUpdateIo("add", selector, ...args);
@@ -157,6 +167,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       selector(StoreManager._store),
       {
         merge,
+        safeMerge,
         add,
         remove,
         splice,

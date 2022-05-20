@@ -4,8 +4,8 @@ const { removeFromArray, isSame, toSelector } = require("./helpers");
 function createClient({ useState, useEffect, useRef }, io) {
   const client = new IoClient(io);
 
-  function useSelect(selector = 'x => x') {
-    selector=selector.toString();
+  function useSelect(selector = "x => x") {
+    selector = selector.toString();
 
     const [data, setdata] = useState(null);
     const state = useRef("init");
@@ -25,7 +25,10 @@ function createClient({ useState, useEffect, useRef }, io) {
     const merge = (...args) => {
       client.send("merge", ...args);
 
-      if (args.length === 1) setdata( toSelector( selector )(args[0]) );
+      if (args.length === 1) setdata(toSelector(selector)(args[0]));
+    };
+    const safeMerge = fn => {
+      client.send("safeMerge", fn);
     };
     const add = (...args) => {
       console.log("OPER", args);
@@ -39,7 +42,7 @@ function createClient({ useState, useEffect, useRef }, io) {
     const remove = fn => {
       if (fn.constructor !== Function)
         throw new Error("remove param must be a function");
-      fn=fn.toString();
+      fn = fn.toString();
       client.send("remove", selector, fn);
 
       if (data && data.constructor === Array) {
@@ -72,7 +75,10 @@ function createClient({ useState, useEffect, useRef }, io) {
       }
     };
 
-    return [data, { state, merge, add, remove, splice, setProp, deleteProp }];
+    return [
+      data,
+      { state, safeMerge, merge, add, remove, splice, setProp, deleteProp }
+    ];
   }
 
   function useCom() {
