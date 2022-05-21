@@ -40,10 +40,12 @@ describe("index", () => {
   });
 
   test.each`
-    args                                          | res
-    ${[{ foo: 2 }]}                               | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
-    ${["moo", { dober: 2 }]}                      | ${{ foo: 1, moo: { dober: 2 }, users: { cutelass: {} } }}
-    ${[v => v.users, "cutelass", { seen: true }]} | ${{ foo: 1, moo: {}, users: { cutelass: { seen: true } } }}
+    args                                                      | res
+    ${[{ foo: 2 }]}                                           | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
+    ${["moo", { dober: 2 }]}                                  | ${{ foo: 1, moo: { dober: 2 }, users: { cutelass: {} } }}
+    ${[v => v.users, "cutelass", { seen: true }]}             | ${{ foo: 1, moo: {}, users: { cutelass: { seen: true } } }}
+    ${[v => v.foo, foo => ({ foo: foo + 1 })]}                | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
+    ${[v => v.foo, (foo, state) => ({ foo: state.foo + 1 })]} | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
   `("merge", ({ args, res }) => {
     const { StoreManager } = createServer(React, {
       foo: 1,
@@ -55,25 +57,7 @@ describe("index", () => {
 
     expect(StoreManager._store).toEqual(res);
   });
-  test.each`
-    oper
-    ${store => ({ ...store, foo: store.foo + 1 })}
-    ${"store => ({ ...store, foo: store.foo + 1 })"}
-  `("safeMerge", ({ oper }) => {
-    const { StoreManager } = createServer(React, {
-      foo: 1,
-      moo: {},
-      users: { cutelass: {} }
-    });
 
-    StoreManager.safeMerge(oper);
-
-    expect(StoreManager._store).toEqual({
-      foo: 2,
-      moo: {},
-      users: { cutelass: {} }
-    });
-  });
   test("merge calls onupdate", () => {
     const { StoreManager } = createServer(React, {
       foo: 1,

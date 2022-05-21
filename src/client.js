@@ -27,9 +27,6 @@ function createClient({ useState, useEffect, useRef }, io) {
 
       if (args.length === 1) setdata(toSelector(selector)(args[0]));
     };
-    const safeMerge = fn => {
-      client.send("safeMerge", fn);
-    };
     const add = (...args) => {
       console.log("OPER", args);
       client.send("add", selector, ...args);
@@ -75,10 +72,7 @@ function createClient({ useState, useEffect, useRef }, io) {
       }
     };
 
-    return [
-      data,
-      { state, safeMerge, merge, add, remove, splice, setProp, deleteProp }
-    ];
+    return [data, { state, merge, add, remove, splice, setProp, deleteProp }];
   }
 
   function useCom() {

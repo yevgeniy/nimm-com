@@ -35,10 +35,14 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       const args = [...arguments];
       let selector;
       let prop;
+      let fnmerge;
       let mergeEnt;
 
       if (args.length === 1) {
         mergeEnt = args[0];
+      } else if (args.length === 2 && args[1].constructor === Function) {
+        selector = toSelector(args[0]);
+        fnmerge = args[1];
       } else if (args.length === 2) {
         selector = v => v;
         prop = args[0];
@@ -50,19 +54,18 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       }
 
       if (!selector && !prop) this._store = { ...this._store, ...mergeEnt };
-      else {
+      else if (fnmerge) {
+        const curdata = selector(this._store);
+        mergeEnt = fnmerge(curdata, this._store);
+        this._store = { ...this._store, ...mergeEnt };
+      } else {
         const ent = selector(this._store);
         ent[prop] = { ...ent[prop], ...mergeEnt };
       }
 
       this.onUpdate();
     },
-    safeMerge: function(fn) {
-      fn = toSelector(fn);
-      const res = fn(this._store);
-      if (res) this._store = { ...this._store, ...res };
-      this.onUpdate();
-    },
+
     add: function(selector, ...entries) {
       selector = toSelector(selector);
       selector(this._store).push(...entries);
@@ -138,10 +141,6 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       StoreManager.merge(...args);
       StoreManager.onUpdateIo("merge", ...args);
     };
-    const safeMerge = fn => {
-      StoreManager.safeMerge(fn);
-      StoreManager.onUpdateIo("safeMerge", ...args);
-    };
     const add = (...args) => {
       StoreManager.add(selector, ...args);
       StoreManager.onUpdateIo("add", selector, ...args);
@@ -167,7 +166,6 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       selector(StoreManager._store),
       {
         merge,
-        safeMerge,
         add,
         remove,
         splice,
