@@ -24,6 +24,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
 
     onUpdate: function() {
       this._listeners.forEach(v => v());
+      this.onUpdateIo();
     },
     onUpdateIo: function() {
       this._clients.forEach(v => {
@@ -139,27 +140,21 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
 
     const merge = (...args) => {
       StoreManager.merge(...args);
-      StoreManager.onUpdateIo("merge", ...args);
     };
     const add = (...args) => {
       StoreManager.add(selector, ...args);
-      StoreManager.onUpdateIo("add", selector, ...args);
     };
     const remove = (...args) => {
       StoreManager.remove(selector, ...args);
-      StoreManager.onUpdateIo("remove", selector, ...args);
     };
     const splice = (...args) => {
       StoreManager.splice(selector, ...args);
-      StoreManager.onUpdateIo("splice", selector, ...args);
     };
     const setProp = (...args) => {
       StoreManager.setProp(selector, ...args);
-      StoreManager.onUpdateIo("setProp", selector, ...args);
     };
     const deleteProp = (...args) => {
       StoreManager.deleteProp(selector, ...args);
-      StoreManager.onUpdateIo("deleteProp", selector, ...args);
     };
 
     return [
