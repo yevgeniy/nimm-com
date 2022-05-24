@@ -1,11 +1,9 @@
-const { workgen, toSelector, isSame, clone } = require("./helpers");
-const ChannelStream = require("./ChannelStream");
+const { toSelector, isSame, clone } = require("./helpers");
 
 class IoServer {
   constructor(io, storeManager) {
     this.io = io;
     this.hooks = [];
-    this.listeners = [];
     this.isShutdown = false;
     this.storeManager = storeManager;
 
@@ -37,7 +35,7 @@ class IoServer {
     this.io.emit("nimm-com-server-update-hook", guid, data);
   }
   processRequest(guid, name, ...args) {
-    this.listeners
+    this.storeManager._api
       .filter(v => v.name === name)
       .forEach(entry => {
         const res = entry.fn(...args);

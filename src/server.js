@@ -14,6 +14,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     _listeners: [],
     _clients: [],
     _hookOns: [],
+    _api: [],
 
     addListener: function(fn) {
       this._listeners.push(fn);
@@ -115,14 +116,10 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     },
     registerOn: function(guid, name, fn) {
       this.unregisterOn(guid);
-      this._clients.forEach(client =>
-        client.listeners.push({ guid, name, fn })
-      );
+      this._api.push({ guid, name, fn });
     },
     unregisterOn: function(guid) {
-      this._clients.forEach(client => {
-        client.listeners = client.listeners.filter(v => v.guid !== guid);
-      });
+      this._api = this._api.filter(v => v.guid !== guid);
     }
   };
 
