@@ -27,8 +27,14 @@ function createClient({ useState, useEffect, useRef }, io) {
 
       if (args.length === 1) setdata(toSelector(selector)(args[0]));
     };
+    const update = updates => {
+      client.send("update", selector, updates);
+      if (data !== null && data !== undefined) {
+        for (let i in updates) data[i] = updates[i];
+        setdata({ ...data });
+      }
+    };
     const add = (...args) => {
-      console.log("OPER", args);
       client.send("add", selector, ...args);
 
       if (data && data.constructor === Array) {
@@ -72,7 +78,10 @@ function createClient({ useState, useEffect, useRef }, io) {
       }
     };
 
-    return [data, { state, merge, add, remove, splice, setProp, deleteProp }];
+    return [
+      data,
+      { state, merge, add, remove, splice, setProp, deleteProp, update }
+    ];
   }
 
   function useCom() {

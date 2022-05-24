@@ -66,6 +66,12 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
 
       this.onUpdate();
     },
+    update: function(selector, updates) {
+      selector = toSelector(selector);
+      const data = selector(this._store);
+      for (let i in updates) data[i] = updates[i];
+      this.onUpdate();
+    },
 
     add: function(selector, ...entries) {
       selector = toSelector(selector);
@@ -156,12 +162,16 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     const deleteProp = (...args) => {
       StoreManager.deleteProp(selector, ...args);
     };
+    const update = (...args) => {
+      StoreManager.update(selector, ...args);
+    };
 
     return [
       selector(StoreManager._store),
       {
         merge,
         add,
+        update,
         remove,
         splice,
         setProp,

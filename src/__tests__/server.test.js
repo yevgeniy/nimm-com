@@ -57,6 +57,21 @@ describe("index", () => {
 
     expect(StoreManager._store).toEqual(res);
   });
+  test("update", () => {
+    const { StoreManager } = createServer(React, {
+      foo: 1,
+      moo: { a: 1, b: 2 },
+      users: { cutelass: {} }
+    });
+
+    StoreManager.update(x => x.moo, { a: 11, b: 22 });
+
+    expect(StoreManager._store).toEqual({
+      foo: 1,
+      moo: { a: 11, b: 22 },
+      users: { cutelass: {} }
+    });
+  });
 
   test("merge calls onupdate", () => {
     const { StoreManager } = createServer(React, {

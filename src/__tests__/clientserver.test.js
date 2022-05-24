@@ -60,6 +60,7 @@ describe("clientserver", () => {
   test.each`
     oper            | args                        | store                            | init                    | res
     ${"merge"}      | ${[{ foo: "hello world" }]} | ${{ foo: 123 }}                  | ${123}                  | ${"hello world"}
+    ${"update"}     | ${[{ a: 11, b: 22 }]}       | ${{ foo: { a: 1, b: 2 } }}       | ${{ a: 1, b: 2 }}       | ${{ a: 11, b: 22 }}
     ${"add"}        | ${["123", "234"]}           | ${{ foo: ["a"] }}                | ${["a"]}                | ${["a", "123", "234"]}
     ${"remove"}     | ${[v => v === "a"]}         | ${{ foo: ["a", "b"] }}           | ${["a", "b"]}           | ${["b"]}
     ${"splice"}     | ${[0, 1, 1, 2, 3]}          | ${{ foo: ["a", "b"] }}           | ${["a", "b"]}           | ${[1, 2, 3, "b"]}
