@@ -305,4 +305,142 @@ describe("index", () => {
 
     expect(fn.mock.calls).toEqual([[["a", "b", "c"]], [[1, 2, 3, "b", "c"]]]);
   });
+  /*
+  
+  */
+  test.each`
+    selector | oper | args1 | args2 | exp
+    ${v => v} | ${"merge"} | ${[{ foo: 2 }]} | ${[{ foo: 3 }]} | ${[
+  [{ foo: 2, bar: "asdf" }, "merge", { ent: { foo: 2 } }],
+  [{ foo: 3, bar: "asdf" }, "merge", { ent: { foo: 3 } }]
+]}
+    ${v => v} | ${"merge"} | ${[v => v, () => ({ foo: 2 })]} | ${[v => v, () => ({ foo: 3 })]} | ${[
+  [{ foo: 2, bar: "asdf" }, "merge", { ent: { foo: 2 } }],
+  [{ foo: 3, bar: "asdf" }, "merge", { ent: { foo: 3 } }]
+]}
+    ${v => v} | ${"merge"} | ${[v => v.sexykitten, "young", { and: "beautiful" }]} | ${[v => v.sexykitten, "young", { and: "cute" }]} | ${[
+  [{ and: "beautiful" }, "merge", { ent: { and: "beautiful" } }],
+  [{ and: "cute" }, "merge", { ent: { and: "cute" } }]
+]}
+    ${v => v.ids} | ${"add"} | ${[1, 2]} | ${["a", "b", "c"]} | ${[
+  [[1, 2, 4, 1, 2], "add", { added: [1, 2] }],
+  [[1, 2, 4, 1, 2, "a", "b", "c"], "add", { added: ["a", "b", "c"] }]
+]}
+    ${v => v.ids} | ${"remove"} | ${[v => v === 1]} | ${[v => v === 2]} | ${[
+  [[2, 4], "remove", { removed: [1] }],
+  [[4], "remove", { removed: [2] }]
+]}
+    ${v => v.sexykitten.young} | ${"setProp"} | ${["really", "cute"]} | ${["trully", "beautiful"]} | ${[
+  [{ and: "nubile", really: "cute" }, "setProp", { prop: "really", val: "cute" }],
+  [{ and: "nubile", really: "cute", trully: "beautiful" }, "setProp", { prop: "trully", val: "beautiful" }]
+]}
+    ${v => v.sexykitten.young} | ${"update"} | ${[{ trully: "gorgious", and: "beautiful" }]} | ${[{ certainly: "soft" }]} | ${[
+  [{ and: "beautiful", trully: "gorgious" }, "update", { ent: { trully: "gorgious", and: "beautiful" } }],
+  [{ and: "beautiful", trully: "gorgious", certainly: "soft" }, "update", { ent: { certainly: "soft" } }]
+]}
+    ${v => v.ids} | ${"splice"} | ${[0, 2, "a"]} | ${[0, 1, "b"]} | ${[
+  [["a", 4], "splice", { removed: [1, 2], start: 0, cut: 2, added: ["a"] }],
+  [["b", 4], "splice", { removed: ["a"], start: 0, cut: 1, added: ["b"] }]
+]}
+  `("watch updates", async ({ selector, oper, args1, args2, exp }) => {
+    const { useSelect, useCom } = createServer(React, {
+      foo: 1,
+      bar: "asdf",
+      sexykitten: {
+        young: {
+          and: "nubile"
+        }
+      },
+      ids: [1, 2, 4]
+    });
+
+    const fn = jest.fn();
+
+    let state = "init";
+    const Operator = () => {
+      const [res, opers] = useSelect(selector);
+
+      useEffect(() => {
+        if (state === "init") {
+          state = "another";
+          opers[oper](...args1);
+        } else if (state === "another") {
+          state = "done";
+          opers[oper](...args2);
+        }
+      });
+    };
+
+    const Watcher = () => {
+      const { watch } = useCom();
+
+      watch(
+        v => [v, v.ids, v.sexykitten.young],
+        (subject, oper, data) =>
+          fn(JSON.parse(JSON.stringify(subject)), oper, data)
+      );
+    };
+
+    root(
+      component(() => {
+        return [component(Watcher), component(Operator)];
+      })
+    );
+
+    await new Promise(res => setTimeout(res, 500));
+
+    expect(fn.mock.calls).toMatchObject(exp);
+  });
+
+  test("respond only on watched subjects", async () => {
+    const { useSelect, useCom } = createServer(React, {
+      users: []
+    });
+
+    const fn = jest.fn();
+
+    let state = "init";
+    const Operator = () => {
+      const [res, { merge }] = useSelect(v => v);
+
+      useEffect(() => {
+        if (state === "init") {
+          state = "next";
+          merge({ users: [{ username: "kat" }, { username: "mermaid" }] });
+        } else if (state === "next") {
+          state = "done";
+          merge(v => v.users, 0, {
+            pictures: 123,
+            seen: true
+          });
+        }
+      });
+    };
+
+    const Watcher = () => {
+      const { watch } = useCom();
+
+      watch(
+        v => v.users,
+        (subject, oper, data) =>
+          fn(JSON.parse(JSON.stringify(subject)), oper, data)
+      );
+    };
+
+    root(
+      component(() => {
+        return [component(Watcher), component(Operator)];
+      })
+    );
+
+    await new Promise(res => setTimeout(res, 500));
+
+    expect(fn.mock.calls).toMatchObject([
+      [
+        { username: "kat", pictures: 123, seen: true },
+        "merge",
+        { ent: { pictures: 123, seen: true } }
+      ]
+    ]);
+  });
 });
