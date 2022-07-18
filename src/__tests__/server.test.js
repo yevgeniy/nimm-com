@@ -39,23 +39,31 @@ describe("index", () => {
     expect(fn.mock.calls).toEqual([[1]]);
   });
 
+  /*
+
+*/
+
   test.each`
     args                                                      | res
     ${[{ foo: 2 }]}                                           | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
+    ${[s => ({
+    lady: [...s.lady, "looking"]
+  })]} | ${{ lady: ["good", "looking"] }}
     ${["moo", { dober: 2 }]}                                  | ${{ foo: 1, moo: { dober: 2 }, users: { cutelass: {} } }}
     ${[v => v.users, "cutelass", { seen: true }]}             | ${{ foo: 1, moo: {}, users: { cutelass: { seen: true } } }}
     ${[v => v.foo, foo => ({ foo: foo + 1 })]}                | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
     ${[v => v.foo, (foo, state) => ({ foo: state.foo + 1 })]} | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
-  `("merge", ({ args, res }) => {
+  `("merge server operator", ({ args, res }) => {
     const { StoreManager } = createServer(React, {
       foo: 1,
       moo: {},
-      users: { cutelass: {} }
+      users: { cutelass: {} },
+      lady: ["good"]
     });
 
     StoreManager.merge(...args);
 
-    expect(StoreManager._store).toEqual(res);
+    expect(StoreManager._store).toMatchObject(res);
   });
   test("update", () => {
     const { StoreManager } = createServer(React, {

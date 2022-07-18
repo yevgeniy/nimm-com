@@ -40,7 +40,10 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       let fnmerge;
       let mergeEnt;
 
-      if (args.length === 1) {
+      if (args.length === 1 && args[0].constructor === Function) {
+        fnmerge = args[0];
+        selector = s => s;
+      } else if (args.length === 1) {
         mergeEnt = args[0];
       } else if (args.length === 2 && args[1].constructor === Function) {
         selector = toSelector(args[0]);
@@ -62,6 +65,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       } else if (fnmerge) {
         const curdata = selector(this._store);
         mergeEnt = fnmerge(curdata, this._store);
+
         this._store = { ...this._store, ...mergeEnt };
         this.onUpdate(this._store, "merge", { ent: mergeEnt });
       } else {
