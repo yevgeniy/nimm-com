@@ -89,6 +89,22 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       for (let i in mergeEnt) subject[i] = mergeEnt[i];
       this.onUpdate(subject, "update", { ent: mergeEnt });
     },
+    updateArray: function(selector, updates) {
+      selector = toSelector(selector);
+
+      let fn;
+      if (updates.constructor === Function) fn = updates;
+      else fn = () => updates;
+
+      const subject = selector(this._store);
+
+      const mergeEnt = fn(subject, this._store);
+
+      subject.splice(0, Infinity);
+      subject.push(...mergeEnt);
+
+      this.onUpdate(subject, "update", { ent: mergeEnt });
+    },
 
     add: function(selector, ...entries) {
       selector = toSelector(selector);
@@ -205,6 +221,9 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     const update = (...args) => {
       StoreManager.update(selector, ...args);
     };
+    const updateArray = (...args) => {
+      StoreManager.updateArray(selector, ...args);
+    };
 
     const change = changeDescriptor.current;
     if (change) changeDescriptor.current = null;
@@ -215,6 +234,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
         merge,
         add,
         update,
+        updateArray,
         remove,
         splice,
         setProp,

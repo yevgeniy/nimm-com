@@ -84,6 +84,25 @@ describe("index", () => {
       users: { cutelass: {} }
     });
   });
+  test.each`
+    arg
+    ${[11, 22]}
+    ${(moo, state) => [moo[0] + state.foo + 8, 22]}
+  `("updateArray", ({ arg }) => {
+    const { StoreManager } = createServer(React, {
+      foo: 2,
+      moo: [1, 2],
+      users: { cutelass: {} }
+    });
+
+    StoreManager.update(x => x.moo, arg);
+
+    expect(StoreManager._store).toEqual({
+      foo: 2,
+      moo: [11, 22],
+      users: { cutelass: {} }
+    });
+  });
 
   test("merge calls onupdate", () => {
     const { StoreManager } = createServer(React, {
