@@ -77,9 +77,17 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     },
     update: function(selector, updates) {
       selector = toSelector(selector);
+
+      let fn;
+      if (updates.constructor === Function) fn = updates;
+      else fn = () => updates;
+
       const subject = selector(this._store);
-      for (let i in updates) subject[i] = updates[i];
-      this.onUpdate(subject, "update", { ent: updates });
+
+      const mergeEnt = fn(subject, this._store);
+
+      for (let i in mergeEnt) subject[i] = mergeEnt[i];
+      this.onUpdate(subject, "update", { ent: mergeEnt });
     },
 
     add: function(selector, ...entries) {

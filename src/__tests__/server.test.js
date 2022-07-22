@@ -65,14 +65,18 @@ describe("index", () => {
 
     expect(StoreManager._store).toMatchObject(res);
   });
-  test("update", () => {
+  test.each`
+    arg
+    ${{ a: 11, b: 22 }}
+    ${(moo, state) => ({ a: 8 + moo.b + state.foo, b: 22 })}
+  `("update", ({ arg }) => {
     const { StoreManager } = createServer(React, {
       foo: 1,
       moo: { a: 1, b: 2 },
       users: { cutelass: {} }
     });
 
-    StoreManager.update(x => x.moo, { a: 11, b: 22 });
+    StoreManager.update(x => x.moo, arg);
 
     expect(StoreManager._store).toEqual({
       foo: 1,
