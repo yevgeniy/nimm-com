@@ -15,67 +15,39 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     _hookOns: [],
     _api: [],
 
-    addListener: function(fn) {
+    addListener: function (fn) {
       this._listeners.push(fn);
       return () => {
         this._listeners = this._listeners.filter(v => v !== fn);
       };
     },
 
-    onUpdate: function(subject, oper, data) {
+    onUpdate: function (subject, oper, data) {
       const change = { subject, oper, data };
       this._listeners.forEach(v => v(change));
       this.onUpdateIo(change);
     },
-    onUpdateIo: function(changeDescriptor = {}) {
+    onUpdateIo: function (changeDescriptor = {}) {
       this._clients.forEach(v => {
         v.update(changeDescriptor);
       });
     },
 
-    merge: function(mergeEnt_prop_selector, mergeEnt_prop, _mergeEnt) {
+    merge: function (merge_ent_or_funct) {
       const args = [...arguments];
-      let selector;
-      let prop;
-      let fnmerge;
-      let mergeEnt;
 
-      if (args.length === 1 && args[0].constructor === Function) {
-        fnmerge = args[0];
-        selector = s => s;
-      } else if (args.length === 1) {
-        mergeEnt = args[0];
-      } else if (args.length === 2 && args[1].constructor === Function) {
-        selector = toSelector(args[0]);
-        fnmerge = args[1];
-      } else if (args.length === 2) {
-        selector = v => v;
-        prop = args[0];
-        mergeEnt = args[1];
-      } else if (args.length === 3) {
-        selector = toSelector(args[0]);
-        prop = args[1];
-        mergeEnt = args[2];
-      }
+      let mergeFn;
 
-      if (!selector && !prop) {
-        this._store = { ...this._store, ...mergeEnt };
-        this.onUpdate(this._store, "merge", { ent: mergeEnt });
-        return;
-      } else if (fnmerge) {
-        const curdata = selector(this._store);
-        mergeEnt = fnmerge(curdata, this._store);
+      if (args[0].constructor === Function) {
+        mergeFn = args[0];
+      } else
+        mergeFn = x => args[0];
 
-        this._store = { ...this._store, ...mergeEnt };
-        this.onUpdate(this._store, "merge", { ent: mergeEnt });
-      } else {
-        const ent = selector(this._store);
-        ent[prop] = { ...ent[prop], ...mergeEnt };
-
-        this.onUpdate(ent[prop], "merge", { ent: mergeEnt });
-      }
+      const mergeEnt = mergeFn(this._store);
+      this._store = { ...this._store, ...mergeEnt };
+      this.onUpdate(this._store, 'merge', { ent: mergeEnt })
     },
-    update: function(selector, updates) {
+    update: function (selector, updates) {
       selector = toSelector(selector);
 
       let fn;
@@ -89,7 +61,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       for (let i in mergeEnt) subject[i] = mergeEnt[i];
       this.onUpdate(subject, "update", { ent: mergeEnt });
     },
-    updateArray: function(selector, updates) {
+    updateArray: function (selector, updates) {
       selector = toSelector(selector);
 
       let fn;
@@ -106,13 +78,13 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
       this.onUpdate(subject, "update", { ent: mergeEnt });
     },
 
-    add: function(selector, ...entries) {
+    add: function (selector, ...entries) {
       selector = toSelector(selector);
       const subject = selector(this._store);
       subject.push(...entries);
       this.onUpdate(subject, "add", { added: entries });
     },
-    remove: function(selector, matcher) {
+    remove: function (selector, matcher) {
       selector = toSelector(selector);
       const col = selector(this._store);
 
@@ -120,7 +92,7 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
 
       this.onUpdate(col, "remove", { removed });
     },
-    splice: function(selector, ...args) {
+    splice: function (selector, ...args) {
       selector = toSelector(selector);
       const subject = selector(this._store);
       const removed = subject.splice(...args);
@@ -132,21 +104,21 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
         added: args.slice(2)
       });
     },
-    setProp: function(selector, prop, val) {
+    setProp: function (selector, prop, val) {
       selector = toSelector(selector);
 
       const subject = selector(this._store);
       subject[prop] = val;
       this.onUpdate(subject, "setProp", { prop, val });
     },
-    deleteProp: function(selector, prop) {
+    deleteProp: function (selector, prop) {
       selector = toSelector(selector);
       const subject = selector(this._store);
       const val = subject[prop];
       delete subject[prop];
       this.onUpdate(subject, "delete", { prop, val });
     },
-    addIoServer: function(comServer) {
+    addIoServer: function (comServer) {
       this._clients.push(comServer);
 
       this.onUpdateIo("merge", this._store);
@@ -156,17 +128,17 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
         this._ioServers = this._clients.filter(v => v !== comServer);
       };
     },
-    registerOn: function(guid, name, fn) {
+    registerOn: function (guid, name, fn) {
       this.unregisterOn(guid);
       this._api.push({ guid, name, fn });
     },
-    unregisterOn: function(guid) {
+    unregisterOn: function (guid) {
       this._api = this._api.filter(v => v.guid !== guid);
     },
-    send: function(name, ...args) {
+    send: function (name, ...args) {
       this.request(name, ...args);
     },
-    request: async function(name, ...args) {
+    request: async function (name, ...args) {
       const ress = this._api
         .filter(v => v.name === name)
         .map(entry => {

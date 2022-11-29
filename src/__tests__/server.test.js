@@ -45,20 +45,11 @@ describe("index", () => {
 
   test.each`
     args                                                      | res
-    ${[{ foo: 2 }]}                                           | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
-    ${[s => ({
-    lady: [...s.lady, "looking"]
-  })]} | ${{ lady: ["good", "looking"] }}
-    ${["moo", { dober: 2 }]}                                  | ${{ foo: 1, moo: { dober: 2 }, users: { cutelass: {} } }}
-    ${[v => v.users, "cutelass", { seen: true }]}             | ${{ foo: 1, moo: {}, users: { cutelass: { seen: true } } }}
-    ${[v => v.foo, foo => ({ foo: foo + 1 })]}                | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
-    ${[v => v.foo, (foo, state) => ({ foo: state.foo + 1 })]} | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
+    ${[{ foo: 2 }]}                                           | ${{ foo: 2 }}
+    ${[x => ({ foo: x.foo + 2 })]} | ${{ foo: 3 }}
   `("merge server operator", ({ args, res }) => {
     const { StoreManager } = createServer(React, {
       foo: 1,
-      moo: {},
-      users: { cutelass: {} },
-      lady: ["good"]
     });
 
     StoreManager.merge(...args);
@@ -339,41 +330,7 @@ describe("index", () => {
   /*
   
   */
-  test.each`
-    selector | oper | args1 | args2 | exp
-    ${v => v} | ${"merge"} | ${[{ foo: 2 }]} | ${[{ foo: 3 }]} | ${[
-  [{ foo: 2, bar: "asdf" }, "merge", { ent: { foo: 2 } }],
-  [{ foo: 3, bar: "asdf" }, "merge", { ent: { foo: 3 } }]
-]}
-    ${v => v} | ${"merge"} | ${[v => v, () => ({ foo: 2 })]} | ${[v => v, () => ({ foo: 3 })]} | ${[
-  [{ foo: 2, bar: "asdf" }, "merge", { ent: { foo: 2 } }],
-  [{ foo: 3, bar: "asdf" }, "merge", { ent: { foo: 3 } }]
-]}
-    ${v => v} | ${"merge"} | ${[v => v.sexykitten, "young", { and: "beautiful" }]} | ${[v => v.sexykitten, "young", { and: "cute" }]} | ${[
-  [{ and: "beautiful" }, "merge", { ent: { and: "beautiful" } }],
-  [{ and: "cute" }, "merge", { ent: { and: "cute" } }]
-]}
-    ${v => v.ids} | ${"add"} | ${[1, 2]} | ${["a", "b", "c"]} | ${[
-  [[1, 2, 4, 1, 2], "add", { added: [1, 2] }],
-  [[1, 2, 4, 1, 2, "a", "b", "c"], "add", { added: ["a", "b", "c"] }]
-]}
-    ${v => v.ids} | ${"remove"} | ${[v => v === 1]} | ${[v => v === 2]} | ${[
-  [[2, 4], "remove", { removed: [1] }],
-  [[4], "remove", { removed: [2] }]
-]}
-    ${v => v.sexykitten.young} | ${"setProp"} | ${["really", "cute"]} | ${["trully", "beautiful"]} | ${[
-  [{ and: "nubile", really: "cute" }, "setProp", { prop: "really", val: "cute" }],
-  [{ and: "nubile", really: "cute", trully: "beautiful" }, "setProp", { prop: "trully", val: "beautiful" }]
-]}
-    ${v => v.sexykitten.young} | ${"update"} | ${[{ trully: "gorgious", and: "beautiful" }]} | ${[{ certainly: "soft" }]} | ${[
-  [{ and: "beautiful", trully: "gorgious" }, "update", { ent: { trully: "gorgious", and: "beautiful" } }],
-  [{ and: "beautiful", trully: "gorgious", certainly: "soft" }, "update", { ent: { certainly: "soft" } }]
-]}
-    ${v => v.ids} | ${"splice"} | ${[0, 2, "a"]} | ${[0, 1, "b"]} | ${[
-  [["a", 4], "splice", { removed: [1, 2], start: 0, cut: 2, added: ["a"] }],
-  [["b", 4], "splice", { removed: ["a"], start: 0, cut: 1, added: ["b"] }]
-]}
-  `("watch updates", async ({ selector, oper, args1, args2, exp }) => {
+  test("watch updates", async () => {
     const { useSelect, useCom } = createServer(React, {
       foo: 1,
       bar: "asdf",
@@ -389,15 +346,21 @@ describe("index", () => {
 
     let state = "init";
     const Operator = () => {
-      const [res, opers] = useSelect(selector);
+      const [, { merge }] = useSelect(x => x);
 
       useEffect(() => {
         if (state === "init") {
           state = "another";
-          opers[oper](...args1);
+          merge({ ids: ['a', 'b'] });
         } else if (state === "another") {
           state = "done";
-          opers[oper](...args2);
+          merge({
+            sexykitten: {
+              young: {
+                and: 'cute'
+              }
+            }
+          });
         }
       });
     };
@@ -420,7 +383,21 @@ describe("index", () => {
 
     await new Promise(res => setTimeout(res, 500));
 
-    expect(fn.mock.calls).toMatchObject(exp);
+    expect(fn.mock.calls).toEqual([
+      [
+        {
+          "bar": "asdf",
+          "foo": 1,
+          "ids": ["a", "b"],
+          "sexykitten": { "young": { "and": "nubile" } }
+        },
+        "merge",
+        { "ent": { "ids": ["a", "b"] } }
+      ],
+      [
+        { "bar": "asdf", "foo": 1, "ids": ["a", "b"], "sexykitten": { "young": { "and": "cute" } } },
+        "merge",
+        { "ent": { "sexykitten": { "young": { "and": "cute" } } } }]]);
   });
 
   test("respond only on watched subjects", async () => {
@@ -433,6 +410,7 @@ describe("index", () => {
     let state = "init";
     const Operator = () => {
       const [res, { merge }] = useSelect(v => v);
+      const [, { update }] = useSelect(v => v.users[0])
 
       useEffect(() => {
         if (state === "init") {
@@ -440,7 +418,7 @@ describe("index", () => {
           merge({ users: [{ username: "kat" }, { username: "mermaid" }] });
         } else if (state === "next") {
           state = "done";
-          merge(v => v.users, 0, {
+          update({
             pictures: 123,
             seen: true
           });
@@ -469,7 +447,7 @@ describe("index", () => {
     expect(fn.mock.calls).toMatchObject([
       [
         { username: "kat", pictures: 123, seen: true },
-        "merge",
+        "update",
         { ent: { pictures: 123, seen: true } }
       ]
     ]);
