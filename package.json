@@ -1,6 +1,6 @@
 {
   "name": "nimm-com",
-  "version": "1.0.1",
+  "version": "1.2.2",
   "description": "one store between envs",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,9 @@
     "url": "https://github.com/yevgeniy/nimm-com/issues"
   },
   "homepage": "https://github.com/yevgeniy/nimm-com#readme",
-  "dependencies": {},
+  "dependencies": {
+    "jest": "^29.3.1"
+  },
   "devDependencies": {
     "nimm-react": "^1.0.25"
   }

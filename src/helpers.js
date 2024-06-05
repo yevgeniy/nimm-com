@@ -69,39 +69,28 @@ function guid() {
 }
 
 function isSame(a, b) {
-  if (a !== b) return false;
-
-  if (!a || !b) return a === b;
-
-  if (a.constructor === Object) {
-    if (Object.keys(a).length !== Object.keys(b).length) return false;
-    for (let i in a) {
-      if (a[i] !== b[i]) return false;
-      if (a.constructor === Object || a.constructor === Array)
-        return isSame(a[i], b[i]);
-    }
-  } else if (a.constructor === Array) {
-    if (a.length !== b.length) return false;
-    for (let x = 0; x < a.length; x++) {
-      if (a[x] !== b[x]) return false;
-      if (a[x].constructor === Object || a[x].constructor === Array)
-        return isSame(a[x], b[x]);
-    }
-  }
-
-  return true;
+  if (a && b && typeof a == "object" && typeof b == "object") {
+    if (Object.keys(a).length != Object.keys(b).length) return false;
+    for (var key in a) if (!isSame(a[key], b[key])) return false;
+    return true;
+  } else return a === b;
 }
 function removeFromArray(col, matcher) {
   const toremoveindex = [];
   col.forEach((v, i) => matcher(v, i) && toremoveindex.push(i));
   toremoveindex.reverse();
 
-  toremoveindex.forEach(i => col.splice(i, 1));
+  const removed = [];
+  toremoveindex.forEach(i => {
+    removed.push(col.splice(i, 1)[0]);
+  });
+
+  return removed;
 }
 function clone(object) {
   if (!object) return object;
-  if (object.constructor === Object) return { ...object };
-  else if (object.constructor === Array) return [...object];
+  if (object.constructor === Object || object.constructor === Array)
+    return JSON.parse(JSON.stringify(object));
   return object;
 }
 

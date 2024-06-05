@@ -1,12 +1,11 @@
 const IoServer = require("./IoServer");
-const { toSelector, removeFromArray, guid, isSame } = require("./helpers");
-
-function toBuffer(ent) {
-  if (!ent) return ent;
-  else if (ent.constructor === Object) return { ...ent };
-  else if (ent.constructor === Array) return [...ent];
-  return ent;
-}
+const {
+  toSelector,
+  removeFromArray,
+  guid,
+  isSame,
+  clone
+} = require("./helpers");
 
 function createServer({ useState, useEffect, useRef }, baseStore = {}) {
   const StoreManager = {
@@ -14,80 +13,112 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     _listeners: [],
     _clients: [],
     _hookOns: [],
+    _api: [],
 
-    addListener: function(fn) {
+    addListener: function (fn) {
       this._listeners.push(fn);
       return () => {
         this._listeners = this._listeners.filter(v => v !== fn);
       };
     },
 
-    onUpdate: function() {
-      this._listeners.forEach(v => v());
+    onUpdate: function (subject, oper, data) {
+      const change = { subject, oper, data };
+      this._listeners.forEach(v => v(change));
+      this.onUpdateIo(change);
     },
-    onUpdateIo: function() {
+    onUpdateIo: function (changeDescriptor = {}) {
       this._clients.forEach(v => {
-        v.update();
+        v.update(changeDescriptor);
       });
     },
 
-    merge: function(mergeEnt_prop_selector, mergeEnt_prop, _mergeEnt) {
+    merge: function (merge_ent_or_funct) {
       const args = [...arguments];
-      let selector;
-      let prop;
-      let mergeEnt;
 
-      if (args.length === 1) {
-        mergeEnt = args[0];
-      } else if (args.length === 2) {
-        selector = v => v;
-        prop = args[0];
-        mergeEnt = args[1];
-      } else if (args.length === 3) {
-        selector = toSelector(args[0]);
-        prop = args[1];
-        mergeEnt = args[2];
-      }
+      let mergeFn;
 
-      if (!selector && !prop) this._store = { ...this._store, ...mergeEnt };
-      else {
-        const ent = selector(this._store);
-        ent[prop] = { ...ent[prop], ...mergeEnt };
-      }
+      if (args[0].constructor === Function) {
+        mergeFn = args[0];
+      } else
+        mergeFn = x => args[0];
 
-      this.onUpdate();
+      const mergeEnt = mergeFn(this._store);
+      this._store = { ...this._store, ...mergeEnt };
+      this.onUpdate(this._store, 'merge', { ent: mergeEnt })
     },
-    add: function(selector, ...entries) {
+    update: function (selector, updates) {
       selector = toSelector(selector);
-      selector(this._store).push(...entries);
-      this.onUpdate();
+
+      let fn;
+      if (updates.constructor === Function) fn = updates;
+      else fn = () => updates;
+
+      const subject = selector(this._store);
+
+      const mergeEnt = fn(subject, this._store);
+
+      for (let i in mergeEnt) subject[i] = mergeEnt[i];
+      this.onUpdate(subject, "update", { ent: mergeEnt });
     },
-    remove: function(selector, matcher) {
+    updateArray: function (selector, updates) {
+      selector = toSelector(selector);
+
+      let fn;
+      if (updates.constructor === Function) fn = updates;
+      else fn = () => updates;
+
+      const subject = selector(this._store);
+
+      const mergeEnt = fn(subject, this._store);
+
+      subject.splice(0, Infinity);
+      subject.push(...mergeEnt);
+
+      this.onUpdate(subject, "update", { ent: mergeEnt });
+    },
+
+    add: function (selector, ...entries) {
+      selector = toSelector(selector);
+      const subject = selector(this._store);
+      subject.push(...entries);
+      this.onUpdate(subject, "add", { added: entries });
+    },
+    remove: function (selector, matcher) {
       selector = toSelector(selector);
       const col = selector(this._store);
 
-      removeFromArray(col, matcher);
+      const removed = removeFromArray(col, matcher);
 
-      this.onUpdate();
+      this.onUpdate(col, "remove", { removed });
     },
-    splice: function(selector, ...args) {
+    splice: function (selector, ...args) {
       selector = toSelector(selector);
-      const ent = selector(this._store);
-      ent.splice(...args);
+      const subject = selector(this._store);
+      const removed = subject.splice(...args);
 
-      this.onUpdate();
+      this.onUpdate(subject, "splice", {
+        removed,
+        start: args[0],
+        cut: args[1],
+        added: args.slice(2)
+      });
     },
-    setProp: function(selector, prop, val) {
+    setProp: function (selector, prop, val) {
       selector = toSelector(selector);
-      selector(this._store)[prop] = val;
-      this.onUpdate();
+
+      const subject = selector(this._store);
+      subject[prop] = val;
+      this.onUpdate(subject, "setProp", { prop, val });
     },
-    deleteProp: function(selector, prop) {
+    deleteProp: function (selector, prop) {
       selector = toSelector(selector);
-      delete selector(this._store)[prop];
-      this.onUpdate();
+      const subject = selector(this._store);
+      const val = subject[prop];
+      delete subject[prop];
+      this.onUpdate(subject, "delete", { prop, val });
     },
-    addIoServer: function(comServer) {
+    addIoServer: function (comServer) {
       this._clients.push(comServer);
 
       this.onUpdateIo("merge", this._store);
@@ -97,31 +128,44 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
         this._ioServers = this._clients.filter(v => v !== comServer);
       };
     },
-    registerOn: function(guid, name, fn) {
+    registerOn: function (guid, name, fn) {
       this.unregisterOn(guid);
-      this._clients.forEach(client =>
-        client.listeners.push({ guid, name, fn })
-      );
+      this._api.push({ guid, name, fn });
     },
-    unregisterOn: function(guid) {
-      this._clients.forEach(client => {
-        client.listeners = client.listeners.filter(v => v.guid !== guid);
-      });
+    unregisterOn: function (guid) {
+      this._api = this._api.filter(v => v.guid !== guid);
+    },
+    send: function (name, ...args) {
+      this.request(name, ...args);
+    },
+    request: async function (name, ...args) {
+      const ress = this._api
+        .filter(v => v.name === name)
+        .map(entry => {
+          return new Promise(r => {
+            res = entry.fn(...args);
+            res && res.then ? res.then(r) : r(res);
+          });
+        });
+      const [data] = await Promise.all(ress);
+      return data;
     }
   };
 
   function useSelect(selector = x => x) {
     const updator = useRef(0);
     const [, sett] = useState(updator.current);
+    const changeDescriptor = useRef(null);
 
     useEffect(() => {
-      let buffer = toBuffer(selector(StoreManager._store));
-      const c = StoreManager.addListener(() => {
-        const newval = toBuffer(selector(StoreManager._store));
+      let buffer = clone(selector(StoreManager._store));
+      const c = StoreManager.addListener(change => {
+        const newval = clone(selector(StoreManager._store));
 
         if (isSame(buffer, newval)) return;
 
         buffer = newval;
+        changeDescriptor.current = change;
         sett(++updator.current);
       });
 
@@ -130,38 +174,44 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
 
     const merge = (...args) => {
       StoreManager.merge(...args);
-      StoreManager.onUpdateIo("merge", ...args);
     };
     const add = (...args) => {
       StoreManager.add(selector, ...args);
-      StoreManager.onUpdateIo("add", selector, ...args);
     };
     const remove = (...args) => {
       StoreManager.remove(selector, ...args);
-      StoreManager.onUpdateIo("remove", selector, ...args);
     };
     const splice = (...args) => {
       StoreManager.splice(selector, ...args);
-      StoreManager.onUpdateIo("splice", selector, ...args);
     };
     const setProp = (...args) => {
       StoreManager.setProp(selector, ...args);
-      StoreManager.onUpdateIo("setProp", selector, ...args);
     };
     const deleteProp = (...args) => {
       StoreManager.deleteProp(selector, ...args);
-      StoreManager.onUpdateIo("deleteProp", selector, ...args);
     };
+    const update = (...args) => {
+      StoreManager.update(selector, ...args);
+    };
+    const updateArray = (...args) => {
+      StoreManager.updateArray(selector, ...args);
+    };
+
+    const change = changeDescriptor.current;
+    if (change) changeDescriptor.current = null;
 
     return [
       selector(StoreManager._store),
       {
         merge,
         add,
+        update,
+        updateArray,
         remove,
         splice,
         setProp,
-        deleteProp
+        deleteProp,
+        changeDescriptor: change
       }
     ];
   }
@@ -174,8 +224,22 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     const on = (name, fn) => {
       StoreManager.registerOn(hookGuid.current, name, fn);
     };
+    const send = (...args) => {
+      StoreManager.send(...args);
+    };
+    const request = (...args) => {
+      return StoreManager.request(...args);
+    };
+    const watch = (selector, fn) => {
+      const [observing, { changeDescriptor }] = useSelect(selector);
 
-    return { on };
+      if (changeDescriptor) {
+        const { subject, oper, data } = changeDescriptor;
+        if (observing.indexOf(subject) > -1) fn(subject, oper, data);
+      }
+    };
+
+    return { on, send, request, watch };
   }
 
   function connectServer(io) {

@@ -39,22 +39,62 @@ describe("index", () => {
     expect(fn.mock.calls).toEqual([[1]]);
   });
 
+  /*
+
+*/
+
   test.each`
-    args                                          | res
-    ${[{ foo: 2 }]}                               | ${{ foo: 2, moo: {}, users: { cutelass: {} } }}
-    ${["moo", { dober: 2 }]}                      | ${{ foo: 1, moo: { dober: 2 }, users: { cutelass: {} } }}
-    ${[v => v.users, "cutelass", { seen: true }]} | ${{ foo: 1, moo: {}, users: { cutelass: { seen: true } } }}
-  `("merge", ({ args, res }) => {
+    args                                                      | res
+    ${[{ foo: 2 }]}                                           | ${{ foo: 2 }}
+    ${[x => ({ foo: x.foo + 2 })]} | ${{ foo: 3 }}
+  `("merge server operator", ({ args, res }) => {
     const { StoreManager } = createServer(React, {
       foo: 1,
-      moo: {},
-      users: { cutelass: {} }
     });
 
     StoreManager.merge(...args);
 
-    expect(StoreManager._store).toEqual(res);
+    expect(StoreManager._store).toMatchObject(res);
   });
+  test.each`
+    arg
+    ${{ a: 11, b: 22 }}
+    ${(moo, state) => ({ a: 8 + moo.b + state.foo, b: 22 })}
+  `("update", ({ arg }) => {
+    const { StoreManager } = createServer(React, {
+      foo: 1,
+      moo: { a: 1, b: 2 },
+      users: { cutelass: {} }
+    });
+
+    StoreManager.update(x => x.moo, arg);
+
+    expect(StoreManager._store).toEqual({
+      foo: 1,
+      moo: { a: 11, b: 22 },
+      users: { cutelass: {} }
+    });
+  });
+  test.each`
+    arg
+    ${[11, 22]}
+    ${(moo, state) => [moo[0] + state.foo + 8, 22]}
+  `("updateArray", ({ arg }) => {
+    const { StoreManager } = createServer(React, {
+      foo: 2,
+      moo: [1, 2],
+      users: { cutelass: {} }
+    });
+
+    StoreManager.update(x => x.moo, arg);
+
+    expect(StoreManager._store).toEqual({
+      foo: 2,
+      moo: [11, 22],
+      users: { cutelass: {} }
+    });
+  });
+
   test("merge calls onupdate", () => {
     const { StoreManager } = createServer(React, {
       foo: 1,
@@ -286,5 +326,130 @@ describe("index", () => {
     await new Promise(res => setTimeout(res, 500));
 
     expect(fn.mock.calls).toEqual([[["a", "b", "c"]], [[1, 2, 3, "b", "c"]]]);
+  });
+  /*
+  
+  */
+  test("watch updates", async () => {
+    const { useSelect, useCom } = createServer(React, {
+      foo: 1,
+      bar: "asdf",
+      sexykitten: {
+        young: {
+          and: "nubile"
+        }
+      },
+      ids: [1, 2, 4]
+    });
+
+    const fn = jest.fn();
+
+    let state = "init";
+    const Operator = () => {
+      const [, { merge }] = useSelect(x => x);
+
+      useEffect(() => {
+        if (state === "init") {
+          state = "another";
+          merge({ ids: ['a', 'b'] });
+        } else if (state === "another") {
+          state = "done";
+          merge({
+            sexykitten: {
+              young: {
+                and: 'cute'
+              }
+            }
+          });
+        }
+      });
+    };
+
+    const Watcher = () => {
+      const { watch } = useCom();
+
+      watch(
+        v => [v, v.ids, v.sexykitten.young],
+        (subject, oper, data) =>
+          fn(JSON.parse(JSON.stringify(subject)), oper, data)
+      );
+    };
+
+    root(
+      component(() => {
+        return [component(Watcher), component(Operator)];
+      })
+    );
+
+    await new Promise(res => setTimeout(res, 500));
+
+    expect(fn.mock.calls).toEqual([
+      [
+        {
+          "bar": "asdf",
+          "foo": 1,
+          "ids": ["a", "b"],
+          "sexykitten": { "young": { "and": "nubile" } }
+        },
+        "merge",
+        { "ent": { "ids": ["a", "b"] } }
+      ],
+      [
+        { "bar": "asdf", "foo": 1, "ids": ["a", "b"], "sexykitten": { "young": { "and": "cute" } } },
+        "merge",
+        { "ent": { "sexykitten": { "young": { "and": "cute" } } } }]]);
+  });
+
+  test("respond only on watched subjects", async () => {
+    const { useSelect, useCom } = createServer(React, {
+      users: []
+    });
+
+    const fn = jest.fn();
+
+    let state = "init";
+    const Operator = () => {
+      const [res, { merge }] = useSelect(v => v);
+      const [, { update }] = useSelect(v => v.users[0])
+
+      useEffect(() => {
+        if (state === "init") {
+          state = "next";
+          merge({ users: [{ username: "kat" }, { username: "mermaid" }] });
+        } else if (state === "next") {
+          state = "done";
+          update({
+            pictures: 123,
+            seen: true
+          });
+        }
+      });
+    };
+
+    const Watcher = () => {
+      const { watch } = useCom();
+
+      watch(
+        v => v.users,
+        (subject, oper, data) =>
+          fn(JSON.parse(JSON.stringify(subject)), oper, data)
+      );
+    };
+
+    root(
+      component(() => {
+        return [component(Watcher), component(Operator)];
+      })
+    );
+
+    await new Promise(res => setTimeout(res, 500));
+
+    expect(fn.mock.calls).toMatchObject([
+      [
+        { username: "kat", pictures: 123, seen: true },
+        "update",
+        { ent: { pictures: 123, seen: true } }
+      ]
+    ]);
   });
 });
