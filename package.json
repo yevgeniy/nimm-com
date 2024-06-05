@@ -19,10 +19,7 @@
     "url": "https://github.com/yevgeniy/nimm-com/issues"
   },
   "homepage": "https://github.com/yevgeniy/nimm-com#readme",
-  "dependencies": {
-    "socket.io": "^4.4.1",
-    "socket.io-client": "^4.4.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "nimm-react": "^1.0.25"
   }

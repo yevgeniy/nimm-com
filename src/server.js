@@ -178,11 +178,6 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     return { on };
   }
 
-  function listen(port) {
-    const io = require("socket.io")();
-    io.listen(port);
-    connectServer(io);
-  }
   function connectServer(io) {
     io.sockets.on("connection", com => {
       wireServer(com);
@@ -203,7 +198,6 @@ function createServer({ useState, useEffect, useRef }, baseStore = {}) {
     StoreManager,
     useSelect,
     useCom,
-    listen,
     connectServer,
     wireServer
   };
